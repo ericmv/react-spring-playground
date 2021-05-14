@@ -1,25 +1,28 @@
-import logo from './logo.svg';
-import './App.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+import React, { useState, useEffect } from 'react';
+import DraggableGrid from './components/DraggableGrid';
+import DraggableList from './components/DraggableList';
+import styles from './components/styles.module.css'
+import axios from 'axios';
+
+const items = [0,0,0,0,0,0,0,0,0,0,0,0,0]
+function fetchImageUrls() {
+    return axios.get("https://picsum.photos/v2/list?limit=50").then((res) => {
+        return res.data.map(data => data.download_url);
+    })
 }
+export default function App() {
+    const [urls, setUrls] = useState([])
+    useEffect(() => {
+        fetchImageUrls().then((urls) => {
+            setUrls(urls)
+        })
+    }, [])
+    if (!urls.length) return null
+    return (
+        <div className={styles.container}>
+          <DraggableList items={urls} />
 
-export default App;
+        </div>
+    )
+}
