@@ -1,12 +1,3 @@
-.container {
-  background: #f0f0f0;
-  cursor: url('https://uploads.codesandbox.io/uploads/user/b3e56831-8b98-4fee-b941-0e27f39883ab/Ad1_-cursor.png') 39 39,
-    auto;
-  display: flex;
-  align-items: start;
-  height: 100%;
-  justify-content: start;
-}
 
 .content {
   position: relative;
@@ -21,12 +12,24 @@
   transform-origin: 50% 50% 0px;
   border-radius: 5px;
   font-size: 14.5px;
-  text-transform: uppercase;
   touch-action: none;
   margin-top: 10px;
 }
 
 .content > img {
     margin-top: 10px;
-  touch-action: none;
+    touch-action: none;
+}
+
+.arrow-button {
+    position: relative;
+    height: 100%;
+}
+
+.arrow-button .arrow-button--left {
+    left: 0;
+}
+
+.arrow-button .arrow-button--right {
+    right: 0;
 }

@@ -1,19 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useSprings, animated } from 'react-spring'
-import { useGesture, useDrag } from 'react-use-gesture'
-import clamp from 'lodash/clamp'
+import { useDrag } from 'react-use-gesture'
 import swap from 'lodash-move'
 import styles from './styles.module.css'
+import { StyledThumbnailButton } from './styled'
+import { Edit } from './Icons';
+import ThumbnailContainer from './ThumbnailContainer';
 
 const numColumns = 3
 const columnWidth = 220 + 10
-const containerWidth = numColumns * columnWidth
-const imageHeight = 170 + 10
-
-function insertAndShift(arr, from, to) {
-    let cutOut = arr.splice(from, 1) [0]; // cut the element at index 'from'
-    arr.splice(to, 0, cutOut);            // insert it at index 'to'
-}
+const imageHeight = 170 + 30
 
 
 const fn = (order: number[], active = false, originalIndex = 0, curIndex = 0, y = 0, x=0) => (index: number) =>
@@ -24,7 +20,8 @@ const fn = (order: number[], active = false, originalIndex = 0, curIndex = 0, y 
             scale: 1.1,
             zIndex: 1,
             shadow: 15,
-            immediate: true
+            immediate: true,
+            index: curIndex
           }
         : {
             x: (order.indexOf(index) % numColumns) * columnWidth,
@@ -33,17 +30,45 @@ const fn = (order: number[], active = false, originalIndex = 0, curIndex = 0, y 
             zIndex: 0,
             shadow: 1,
             immediate: false,
+            index
         }
 
 function DraggableList({ items }: { items: string[] }) {
-    const order = useRef(items.map((_, index) => index)) // Store indicies as a local ref, this represents the item order
-    const [current, setCurrent] = useState(-1)
+    const [order, setOrder] = useState(items.map((_, index) => index));
+    // const order = useRef(items.map((_, index) => index)) // Store indicies as a local ref, this represents the item order
+    const [scrollOrder, setScrollOrder] = useState([])
 
-    const [springs, api] = useSprings(items.length, fn(order.current)) // Create springs, each corresponds to an item, controlling its transform, scale, etc.
-    const handleDrag = ({ args: [originalIndex], active, movement: [x, y], scrolling, delta}) => {
-        console.log('movement', [x, y])
-        console.log('delta', delta)
-        const curIndex = order.current.indexOf(originalIndex)
+    const [springs, api] = useSprings(items.length, fn(order)) // Create springs, each corresponds to an item, controlling its transform, scale, etc.
+
+    const handleMovePageUp = (originalIndex) => {
+        const curPosition = order.indexOf(originalIndex);
+        if (curPosition >= order.length - 1) return;
+
+        const newPosition = curPosition + 1;
+
+        const newOrder = swap(order, curPosition, newPosition);
+        api.start(fn(newOrder, false, originalIndex, newPosition));
+        setOrder(newOrder);
+
+    }
+
+    const handleMovePageDown = (originalIndex) => {
+        const curPosition = order.indexOf(originalIndex);
+        if (curPosition <= 0) return;
+
+        const newPosition = curPosition - 1;
+
+        const newOrder = swap(order, curPosition, newPosition);
+        api.start(fn(newOrder));
+        setOrder(newOrder);
+
+    }
+    const handleDrag = ({ args: [originalIndex], active, movement: [x, y], xy, previous, tap}) => {
+        if (tap) {
+            console.log('is tap')
+            return;
+        }
+        const curIndex = order.indexOf(originalIndex)
         const curCol = (curIndex % numColumns)
         const curRow = Math.floor(curIndex / numColumns)
 
@@ -51,53 +76,51 @@ function DraggableList({ items }: { items: string[] }) {
         const newRow = Math.round((curRow * imageHeight + y) / imageHeight)
         const newIndex = (numColumns * newRow) + newCol
 
-        const newOrder = swap(order.current, curIndex, newIndex)
-        // const newOrder = order.current
+        const newOrder = swap(order, curIndex, newIndex)
+        // const newOrder = order
         api.start(fn(newOrder, active, originalIndex, curIndex, y, x)) // Feed springs new style data, they'll animate the view without causing a single render
 
         if (!active) {
             // console.log('drag setting new order to', newOrder)
-            order.current = newOrder
+
+            setOrder(newOrder)
         }
     }
 
-    const handleScroll = ({ args: [originalIndex], active, movement: [x, y], dragging}) => {
-        if (!dragging) return
-        const curIndex = order.current.indexOf(current)
-        const curCol = (curIndex % numColumns)
-        const curRow = Math.floor(curIndex / numColumns)
+    // const handleScroll = ({ args: [originalIndex], active, movement: [x, y], dragging}) => {
+    //     if (!dragging) return
+    //     const curIndex = order.indexOf(current)
+    //     const curCol = (curIndex % numColumns)
+    //     const curRow = Math.floor(curIndex / numColumns)
+    //
+    //     const newCol = Math.round((curCol * columnWidth + x) / columnWidth)
+    //     const newRow = Math.round((curRow * imageHeight + y) / imageHeight)
+    //     const newIndex = (numColumns * newRow) + newCol
+    //
+    //     const newOrder = swap(order, curIndex, newIndex)
+    //     api.start(fn(newOrder, true, current, curIndex, y, x))
+    //
+    //     if (!active) {
+    //         setScrollOrder(newOrder)
+    //     }
+    // }
 
-        const newCol = Math.round((curCol * columnWidth + x) / columnWidth)
-        const newRow = Math.round((curRow * imageHeight + y) / imageHeight)
-        const newIndex = (numColumns * newRow) + newCol
+    const bind = useDrag(handleDrag, { filterTaps: true })
 
-        const newOrder = swap(order.current, curIndex, newIndex)
-        api.start(fn(newOrder, true, current, curIndex, y, x))
-
-        if (!active) {
-            console.log('scroll setting new order to', newOrder)
-            order.current = newOrder
-        }
-    }
-
-    const bind = useGesture({
-        onDrag: handleDrag,
-        // onWheel: handleScroll
-    })
-
-    useEffect(() => {
-        console.log('updating order.current', items)
-        order.current = items.map((_, index) => index)
-    }, [items])
-
+    // useEffect(() => {
+    //     console.log('updating order', items)
+    //     order = items.map((_, index) => index)
+    // }, [items])
+    console.log('rerendering')
     return (
-        <div className={styles.content} style={{ height: items.length * imageHeight }}>
-            {springs.map(({ zIndex, shadow, y, x, scale }, i) => (
+        <div className={styles.content} style={{ height: Math.ceil((items.length / 3)) * imageHeight }}>
+            {springs.map(({ zIndex, shadow, y, x, scale, index }, i) => {
+                console.log('x',x)
+                return (
+
                 <animated.div
                     {...bind(i)}
                     key={i}
-                    onMouseDown={() => setCurrent(i)}
-                    onMouseUp={() => setCurrent(-1)}
                     style={{
                         zIndex,
                         boxShadow: shadow.to(s => `rgba(0, 0, 0, 0.15) 0px ${s}px ${2 * s}px 0px`),
@@ -106,10 +129,21 @@ function DraggableList({ items }: { items: string[] }) {
                         scale,
                     }}
                 >
-                    <img src={items[i]} height={170} width={220} onDragStart={(event) => {event.preventDefault()}}/>
+                    <ThumbnailContainer
+                        imageUri={items[i]}
+                        handleMovePageUp={handleMovePageUp}
+                        handleMovePageDown={handleMovePageDown}
+                        originalIndex={i}
+                    />
+                    <StyledThumbnailButton>
+                        <Edit />
+                        {order.indexOf(i) + 1}
+                    </StyledThumbnailButton>
                 </animated.div>
-            ))}
+            )})}
         </div>
     )
 }
+
+
 export default DraggableList;

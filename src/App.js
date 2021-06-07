@@ -5,7 +5,6 @@ import DraggableList from './components/DraggableList';
 import styles from './components/styles.module.css'
 import axios from 'axios';
 
-const items = [0,0,0,0,0,0,0,0,0,0,0,0,0]
 function fetchImageUrls() {
     return axios.get("https://picsum.photos/v2/list?limit=50").then((res) => {
         return res.data.map(data => data.download_url);
